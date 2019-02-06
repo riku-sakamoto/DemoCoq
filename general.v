@@ -3,6 +3,13 @@ Require Import List.
 Require Export Bool.
 Import ListNotations.
 
+(*
+Listの書き方
+ListNoatations不使用時　List = (1::2::3::nil)
+ListNoatations使用時　List = [1;2;3]
+*)
+
+
 (*Redo関数*)
 Definition DoChangeStatus(b1 b2:bool)(n:nat):nat :=
  match (b1, b2) with
@@ -21,20 +28,6 @@ Fixpoint DoUpdateFunction (xs:list bool)(n:nat):nat :=
              end
  end.
 
-(*
-
-要素がなくなればnil. ただし入力時は必要か（ListNotationsを使えば不要）
-
-ListNoatations不使用時　List = (1::2::3::nil)
-
-ListNoatations使用時　List = [1;2;3]
-
-*)
-Compute DoUpdateFunction (rev(false :: true :: true :: nil)) 3.
-
-Compute DoUpdateFunction [true;false ; true ; true ] 3.
-
-
 (*UnDo関数*)
 Definition UnDoChangeStatus(b1 b2:bool)(x:nat):nat :=
  match (b1, b2) with
@@ -50,13 +43,13 @@ Fixpoint UnDoUpdateFunction (xs:list bool)(n:nat):nat :=
  | nil => n
  | x1::xs' => match xs' with
              | nil => n
-             | x2::xs'' => UnDoChangeStatus x1 x2 (UnDoUpdateFunction xs' n)
+             | x2::xs'' => UnDoChangeStatus x2 x1 (UnDoUpdateFunction xs' n)
              end
  end.
 
 
 Compute DoUpdateFunction (true :: true :: false :: nil) 3.
-Compute UnDoUpdateFunction (false :: false :: true :: nil) 6.
+Compute UnDoUpdateFunction (true :: false :: false :: nil) 6.
 
 Definition rev_bool (a:bool):bool :=
   match a with
@@ -64,7 +57,6 @@ Definition rev_bool (a:bool):bool :=
   |false => true
  end.
 
-Compute DoChangeStatus true true 1.
 
 Theorem DoSn : forall (a b:bool) (n:nat), 
   DoChangeStatus a b (S n) =  S (DoChangeStatus a b n).
@@ -228,8 +220,12 @@ induction xs.
 simpl.
 reflexivity.
 
+intros.
 rewrite decomposition_rev_bool_list.
+rewrite DecompositionUnDo.
+
 simpl.
+
 
 simpl.
 intros.
