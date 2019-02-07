@@ -2,6 +2,7 @@ Require Import Arith.
 Require Import List.
 Require Export Bool.
 Import ListNotations.
+Require Import Wf_nat.
 
 (*
 Listの書き方
@@ -101,54 +102,6 @@ reflexivity.
 reflexivity.
 Qed.
 
-(* Theorem UnDoSn : forall (a b:bool) (n:nat),
-  UnDoChangeStatus a b (S (S n)) =  S (UnDoChangeStatus a b (S n)).
-
-Proof.
-intros.
-case a.
-case b.
--
-intros.
-simpl.
-induction n.
-simpl.
-reflexivity.
-
-simpl.
-rewrite IHn.
-reflexivity.
--
-intros.
-simpl.
-induction n.
-simpl.
-reflexivity.
-
-rewrite IHn.
-reflexivity.
-
--
-case b.
-intros.
-simpl.
-induction n.
-simpl.
-reflexivity.
-
-rewrite IHn.
-reflexivity.
-
-intros.
-simpl.
-induction n.
-simpl.
-reflexivity.
-
-rewrite IHn.
-reflexivity.
-Qed.
- *)
 
 Theorem ReDoUnDo : forall (a b:bool) (n:nat), 
   UnDoChangeStatus (rev_bool a) (rev_bool b) (DoChangeStatus a b n) = n.
@@ -201,8 +154,20 @@ Fixpoint rev_bool_list (l:list bool):list bool :=
   | x::xs => rev_bool_list xs ++ [rev_bool x]
   end.
 
-Theorem decomposition_rev_bool_list:forall (l:list bool)(a:bool),
-  rev_bool_list(a::l) = rev_bool_list(l)++[rev_bool a].
+Theorem decomposition_rev_bool_list:forall (l:list bool)(a:bool)(b:bool),
+  rev_bool_list(a::b::l) = rev_bool_list(l)++[rev_bool b]++[rev_bool a].
+
+Proof.
+intros.
+simpl.
+SearchRewrite(_++_++_).
+rewrite app_assoc_reverse.
+SearchRewrite(_++_).
+reflexivity.
+Qed.
+
+Theorem unify_rev_bool_list:forall (l:list bool)(a:bool),
+  rev_bool_list(l)++[rev_bool a] = rev_bool_list(a::l).
 
 Proof.
 intros.
@@ -211,56 +176,78 @@ reflexivity.
 Qed.
 
 
+
+(* 小定理 3 *)
+(* Undo(a b c n) = UnDoChangeStatus a b UnDoChangeStatus(b c n) *)
+ Theorem DecompositionUnDo : forall (l:list bool)(a:bool)(b:bool)(n:nat),
+  UnDoUpdateFunction (a::b::l) n =  UnDoChangeStatus b a (UnDoUpdateFunction (b::l) n).
+
+Proof.
+intros.
+simpl.
+reflexivity.
+
+Qed.
+
+Theorem DecompositionUnDo2 : forall (l:list bool)(a:bool)(b:bool)(n:nat),
+  UnDoUpdateFunction (l++[b]++[a]) n =  UnDoUpdateFunction (l++[b]) (UnDoChangeStatus a b n).
+
+Proof.
+intros.
+induction l.
+simpl.
+reflexivity.
+induction l.
+simpl.
+reflexivity.
+case a0.
+simpl.
+apply f_equal_nat. (*繰り返し適用*)
+assumption. (*仮定の適用。「nを仮定した」という事実そのものを指している？？*)
+(* info_auto. *) (*autoの中身を見る*)
+simpl.
+apply f_equal_nat.
+assumption.
+Qed.
+
+
+(* 小定理 3 *)
+(* Undo(a b c n) = UnDoChangeStatus a b UnDoChangeStatus(b c n) *)
+ Theorem DecompositionDo : forall (l:list bool)(a:bool)(b:bool)(n:nat),
+  DoUpdateFunction (a::b::l) n =  DoChangeStatus a b (DoUpdateFunction (b::l) n).
+
+Proof.
+intros.
+simpl.
+reflexivity.
+
+Qed.
+
+
+
 Theorem ReDoUnDoFunction : forall (xs:list bool) (n:nat), 
   UnDoUpdateFunction (rev_bool_list xs) (DoUpdateFunction xs n) = n.
 
 (*帰納法の仮定がIHhoge(hogeは変数名)の形で追加*)
 Proof.
+intros.
+induction xs.
+simpl.
+reflexivity.
+
+intros.
 induction xs.
 simpl.
 reflexivity.
 
 intros.
 rewrite decomposition_rev_bool_list.
-rewrite DecompositionUnDo.
+rewrite DecompositionDo.
 
-simpl.
-
-
-simpl.
-intros.
-simpl.
-case a.
--
-simpl.
-case xs.
-simpl.
-reflexivity.
-
-intros.
-auto.
-simpl.
-case b.
-simpl.
+SearchRewrite(_++_).
+rewrite DecompositionUnDo2.
 rewrite ReDoUnDo.
-
+rewrite unify_rev_bool_list.
+rewrite IHxs.
 reflexivity.
-
-simpl.
-rewrite IHxs.
-
-rewrite ReDoUnDo.
-
-intros.
-simpl.
-
-case a.
-simpl.
-intros.
-rewrite DecompositionUnDo.
-
-simpl.
-
-rewrite IHxs.
-
-
+Qed.
