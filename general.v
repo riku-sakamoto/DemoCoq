@@ -10,8 +10,11 @@ ListNoatations不使用時　List = (1::2::3::nil)
 ListNoatations使用時　List = [1;2;3]
 *)
 
+(*任意数のリストに対するReDo-UnDoを証明*)
+
 
 (*Redo関数*)
+  (*2組に対する評価：単独Do関数*)
 Definition DoChangeStatus(b1 b2:bool)(n:nat):nat :=
  match (b1, b2) with
  | (true, true) => S n 
@@ -20,6 +23,7 @@ Definition DoChangeStatus(b1 b2:bool)(n:nat):nat :=
  | (false, false) => S (S (S (S n)))
  end.
 
+  (*任意数のリストに対する評価*)
 Fixpoint DoUpdateFunction (xs:list bool)(n:nat):nat :=
  match xs with
  | nil => n
@@ -30,6 +34,7 @@ Fixpoint DoUpdateFunction (xs:list bool)(n:nat):nat :=
  end.
 
 (*UnDo関数*)
+  (*2組に対する評価：単独UnDo関数*)
 Definition UnDoChangeStatus(b1 b2:bool)(x:nat):nat :=
  match (b1, b2) with
  | (true, true) => x - 4
@@ -38,7 +43,7 @@ Definition UnDoChangeStatus(b1 b2:bool)(x:nat):nat :=
  | (false, false) => x - 1
  end.
 
-
+  (*任意数のリストに対する評価*)
 Fixpoint UnDoUpdateFunction (xs:list bool)(n:nat):nat :=
  match xs with
  | nil => n
@@ -52,13 +57,22 @@ Fixpoint UnDoUpdateFunction (xs:list bool)(n:nat):nat :=
 Compute DoUpdateFunction (true :: true :: false :: nil) 3.
 Compute UnDoUpdateFunction (true :: false :: false :: nil) 6.
 
+  (*boolの反転を定義*)
 Definition rev_bool (a:bool):bool :=
   match a with
   |true => false
   |false => true
  end.
 
+  (*順番も正負も逆なboolリストを定義*)
+Fixpoint rev_bool_list (l:list bool):list bool :=
+  match l with 
+  | nil => nil
+  | x::xs => rev_bool_list xs ++ [rev_bool x]
+  end.
 
+
+(* 単独Do関数に対する交換法則を証明 *)
 Theorem DoSn : forall (a b:bool) (n:nat), 
   DoChangeStatus a b (S n) =  S (DoChangeStatus a b n).
 
@@ -103,6 +117,7 @@ reflexivity.
 Qed.
 
 
+(* 単独Do関数 -> 単独ReDo関数によってもとに戻ることを確認 *)
 Theorem ReDoUnDo : forall (a b:bool) (n:nat), 
   UnDoChangeStatus (rev_bool a) (rev_bool b) (DoChangeStatus a b n) = n.
 
@@ -148,12 +163,8 @@ rewrite DoSn.
 auto.
 Qed.
 
-Fixpoint rev_bool_list (l:list bool):list bool :=
-  match l with 
-  | nil => nil
-  | x::xs => rev_bool_list xs ++ [rev_bool x]
-  end.
 
+(* 反転リストに対する分配則を証明 *)
 Theorem decomposition_rev_bool_list:forall (l:list bool)(a:bool)(b:bool),
   rev_bool_list(a::b::l) = rev_bool_list(l)++[rev_bool b]++[rev_bool a].
 
@@ -166,6 +177,7 @@ SearchRewrite(_++_).
 reflexivity.
 Qed.
 
+(* 反転リストに対する結合則を証明 *)
 Theorem unify_rev_bool_list:forall (l:list bool)(a:bool),
   rev_bool_list(l)++[rev_bool a] = rev_bool_list(a::l).
 
@@ -177,8 +189,7 @@ Qed.
 
 
 
-(* 小定理 3 *)
-(* Undo(a b c n) = UnDoChangeStatus a b UnDoChangeStatus(b c n) *)
+(* Undo関数に対する、リストを前から分配する分配則を証明 *)
  Theorem DecompositionUnDo : forall (l:list bool)(a:bool)(b:bool)(n:nat),
   UnDoUpdateFunction (a::b::l) n =  UnDoChangeStatus b a (UnDoUpdateFunction (b::l) n).
 
@@ -189,6 +200,7 @@ reflexivity.
 
 Qed.
 
+(* Undo関数に対する、リストを後から分配する分配則を証明 *)
 Theorem DecompositionUnDo2 : forall (l:list bool)(a:bool)(b:bool)(n:nat),
   UnDoUpdateFunction (l++[b]++[a]) n =  UnDoUpdateFunction (l++[b]) (UnDoChangeStatus a b n).
 
@@ -211,8 +223,7 @@ assumption.
 Qed.
 
 
-(* 小定理 3 *)
-(* Undo(a b c n) = UnDoChangeStatus a b UnDoChangeStatus(b c n) *)
+(* do関数に対する、リストを前から分配する分配則を証明 *)
  Theorem DecompositionDo : forall (l:list bool)(a:bool)(b:bool)(n:nat),
   DoUpdateFunction (a::b::l) n =  DoChangeStatus a b (DoUpdateFunction (b::l) n).
 
@@ -224,14 +235,14 @@ reflexivity.
 Qed.
 
 
-
+(* Main *)
+(* 任意数のリストに対してReDoしてUnDoしたら元の数に戻ることを証明 *)
 Theorem ReDoUnDoFunction : forall (xs:list bool) (n:nat), 
   UnDoUpdateFunction (rev_bool_list xs) (DoUpdateFunction xs n) = n.
 
-(*帰納法の仮定がIHhoge(hogeは変数名)の形で追加*)
 Proof.
 intros.
-induction xs.
+induction xs. (*リストに対する帰納法を使う*)
 simpl.
 reflexivity.
 
@@ -241,13 +252,19 @@ simpl.
 reflexivity.
 
 intros.
-rewrite decomposition_rev_bool_list.
+rewrite decomposition_rev_bool_list. (*既に証明した定理を用いる*)
 rewrite DecompositionDo.
-
-SearchRewrite(_++_).
 rewrite DecompositionUnDo2.
 rewrite ReDoUnDo.
 rewrite unify_rev_bool_list.
-rewrite IHxs.
+rewrite IHxs. (*帰納法の仮定を使用*)
 reflexivity.
 Qed.
+
+
+
+Require Extraction.
+Extraction Language OCaml.
+Extraction "C:\CoqSample\ForDemo\DoUpdateFunction.ml" DoUpdateFunction.
+Extraction "C:\CoqSample\ForDemo\UnDoUpdateFunction.ml" UnDoUpdateFunction.
+
