@@ -262,7 +262,7 @@ reflexivity.
 Qed.
 
 
-
+(* Ocamlのコードに生成 *)
 Require Extraction.
 Extraction Language OCaml.
 Extraction "C:\CoqSample\ForDemo\DoUpdateFunction.ml" DoUpdateFunction.
